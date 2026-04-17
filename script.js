@@ -1,19 +1,5 @@
-/* =========================================================
-   Bee Specimen Catalog Viewer
-   Static GitHub Pages version
-   Loads data from: data/specimens.csv
-========================================================= */
-
-// -------------------------------
-// Configuration
-// -------------------------------
-
-// CSV file path inside your repository
 const CSV_FILE_PATH = "data/specimens.csv";
 
-// Columns to display in the table.
-// You can reorder these if needed.
-// Make sure they match your CSV headers exactly.
 const DISPLAY_COLUMNS = [
   "occurrenceID",
   "country",
@@ -38,7 +24,6 @@ const DISPLAY_COLUMNS = [
   "scientificName"
 ];
 
-// Filter groups based on your requested logic
 const FILTER_GROUPS = {
   number: ["occurrenceID"],
   locality: ["country", "stateProvince", "county", "municipality", "locality"],
@@ -57,9 +42,6 @@ const FILTER_GROUPS = {
   ]
 };
 
-// -------------------------------
-// State variables
-// -------------------------------
 let allRecords = [];
 let filteredRecords = [];
 let currentPage = 1;
@@ -67,9 +49,6 @@ let rowsPerPage = 50;
 let currentSortColumn = null;
 let currentSortDirection = "asc";
 
-// -------------------------------
-// DOM elements
-// -------------------------------
 const globalSearchInput = document.getElementById("globalSearch");
 const numberFilterInput = document.getElementById("numberFilter");
 const localityFilterInput = document.getElementById("localityFilter");
@@ -91,21 +70,14 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const pageInfo = document.getElementById("pageInfo");
 
-// -------------------------------
-// Utility functions
-// -------------------------------
-
-// Safe text value: convert null/undefined to empty string
 function safeValue(value) {
   return value == null ? "" : String(value);
 }
 
-// Normalize text for case-insensitive search
 function normalizeText(value) {
   return safeValue(value).trim().toLowerCase();
 }
 
-// Check whether a row matches a text query across many columns
 function matchesGroup(record, searchText, columns) {
   const query = normalizeText(searchText);
   if (!query) return true;
@@ -116,7 +88,6 @@ function matchesGroup(record, searchText, columns) {
   });
 }
 
-// Global quick search across display columns
 function matchesGlobal(record, searchText) {
   const query = normalizeText(searchText);
   if (!query) return true;
@@ -127,7 +98,6 @@ function matchesGlobal(record, searchText) {
   });
 }
 
-// Escape HTML to avoid rendering issues from raw text
 function escapeHTML(str) {
   return safeValue(str)
     .replace(/&/g, "&amp;")
@@ -135,13 +105,6 @@ function escapeHTML(str) {
     .replace(/>/g, "&gt;");
 }
 
-// -------------------------------
-// CSV parser
-// -------------------------------
-// This parser supports:
-// - commas inside quoted fields
-// - escaped quotes inside quoted fields
-// - line breaks between rows
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -154,18 +117,15 @@ function parseCSV(text) {
 
     if (char === '"') {
       if (insideQuotes && nextChar === '"') {
-        // Escaped quote
         current += '"';
         i++;
       } else {
-        // Toggle quote state
         insideQuotes = !insideQuotes;
       }
     } else if (char === "," && !insideQuotes) {
       row.push(current);
       current = "";
     } else if ((char === "\n" || char === "\r") && !insideQuotes) {
-      // Handle Windows line endings \r\n
       if (char === "\r" && nextChar === "\n") {
         i++;
       }
@@ -173,7 +133,6 @@ function parseCSV(text) {
       row.push(current);
       current = "";
 
-      // Avoid pushing empty rows
       if (row.some(cell => cell.trim() !== "")) {
         rows.push(row);
       }
@@ -184,7 +143,6 @@ function parseCSV(text) {
     }
   }
 
-  // Push final field and row
   row.push(current);
   if (row.some(cell => cell.trim() !== "")) {
     rows.push(row);
@@ -203,9 +161,6 @@ function parseCSV(text) {
   });
 }
 
-// -------------------------------
-// Data loading
-// -------------------------------
 async function loadCSVData() {
   try {
     loadingMessage.classList.remove("hidden");
@@ -226,7 +181,6 @@ async function loadCSVData() {
       throw new Error("CSV loaded, but no records were found.");
     }
 
-    // Optional: confirm required columns exist
     const firstRecord = allRecords[0];
     const missingColumns = DISPLAY_COLUMNS.filter(col => !(col in firstRecord));
 
@@ -256,9 +210,6 @@ async function loadCSVData() {
   }
 }
 
-// -------------------------------
-// Build table header
-// -------------------------------
 function buildTableHeader() {
   const headerRow = document.createElement("tr");
 
@@ -266,7 +217,6 @@ function buildTableHeader() {
     const th = document.createElement("th");
     th.textContent = column;
 
-    // Add sorting click
     th.addEventListener("click", () => {
       handleSort(column);
     });
@@ -278,9 +228,6 @@ function buildTableHeader() {
   tableHead.appendChild(headerRow);
 }
 
-// -------------------------------
-// Sorting
-// -------------------------------
 function handleSort(column) {
   if (currentSortColumn === column) {
     currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
@@ -299,7 +246,6 @@ function sortRecords(records) {
     const valueA = normalizeText(a[currentSortColumn]);
     const valueB = normalizeText(b[currentSortColumn]);
 
-    // If both are numbers, sort numerically
     const numA = Number(valueA);
     const numB = Number(valueB);
     const bothNumeric = !isNaN(numA) && !isNaN(numB) && valueA !== "" && valueB !== "";
@@ -316,9 +262,6 @@ function sortRecords(records) {
   });
 }
 
-// -------------------------------
-// Filtering
-// -------------------------------
 function applyFilters() {
   const globalSearch = globalSearchInput.value;
   const numberFilter = numberFilterInput.value;
@@ -339,9 +282,6 @@ function applyFilters() {
   filteredRecords = sortRecords(filteredRecords);
 }
 
-// -------------------------------
-// Rendering
-// -------------------------------
 function renderTable() {
   tableBody.innerHTML = "";
 
@@ -408,13 +348,9 @@ function updatePaginationControls() {
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
 }
 
-// -------------------------------
-// Combined update
-// -------------------------------
 function applyFiltersAndRender() {
   applyFilters();
 
-  // Make sure current page is valid after filtering
   const totalPages =
     rowsPerPage === "all"
       ? 1
@@ -427,9 +363,6 @@ function applyFiltersAndRender() {
   renderTable();
 }
 
-// -------------------------------
-// Reset filters
-// -------------------------------
 function resetFilters() {
   globalSearchInput.value = "";
   numberFilterInput.value = "";
@@ -444,9 +377,6 @@ function resetFilters() {
   applyFiltersAndRender();
 }
 
-// -------------------------------
-// Event listeners
-// -------------------------------
 [
   globalSearchInput,
   numberFilterInput,
@@ -488,7 +418,4 @@ nextPageBtn.addEventListener("click", () => {
   }
 });
 
-// -------------------------------
-// Initialize
-// -------------------------------
 loadCSVData();
