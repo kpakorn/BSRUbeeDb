@@ -23,12 +23,15 @@
         <h2>Search & Filter</h2>
 
         <div class="filter-group">
-          <label for="globalSearch">Quick search</label>
+          <label for="globalSearch">Quick search (other fields)</label>
           <input
             type="text"
             id="globalSearch"
-            placeholder="Search across all displayed fields..."
+            placeholder="Search across other fields..."
           />
+          <small>
+            Searches fields not already covered by Number, Locality, Event, Taxonomy, and Others.
+          </small>
         </div>
 
         <div class="filter-group">
@@ -46,9 +49,19 @@
           <input
             type="text"
             id="localityFilter"
-            placeholder="Country, province, locality..."
+            placeholder="Country, province, county, locality..."
           />
-          <small>Searches: country, stateProvince, county, municipality, locality, etc.</small>
+          <small>Searches: country, stateProvince, county, municipality, locality</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="provinceFilter">Province</label>
+          <input
+            type="text"
+            id="provinceFilter"
+            placeholder="Search province only"
+          />
+          <small>Searches: stateProvince</small>
         </div>
 
         <div class="filter-group">
@@ -56,9 +69,39 @@
           <input
             type="text"
             id="eventFilter"
-            placeholder="Date, year, month, day, time..."
+            placeholder="Search all event fields..."
           />
-          <small>Searches: eventDate, day, month, year, eventTime, etc.</small>
+          <small>Searches: eventDate, day, month, year, eventTime</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="dayFilter">Day</label>
+          <input
+            type="text"
+            id="dayFilter"
+            placeholder="Search day"
+          />
+          <small>Searches: day</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="monthFilter">Month</label>
+          <input
+            type="text"
+            id="monthFilter"
+            placeholder="Search month"
+          />
+          <small>Searches: month</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="yearFilter">Year</label>
+          <input
+            type="text"
+            id="yearFilter"
+            placeholder="Search year"
+          />
+          <small>Searches: year</small>
         </div>
 
         <div class="filter-group">
@@ -66,9 +109,81 @@
           <input
             type="text"
             id="taxonomyFilter"
-            placeholder="Family, genus, species..."
+            placeholder="Search all taxonomy fields..."
           />
-          <small>Searches: kingdom, phylum, order, family, subfamily, tribe, genus, subgenus, specificEpithet, scientificName, etc.</small>
+          <small>
+            Searches: kingdom, phylum, class, order, family, subfamily, tribe, genus, subgenus, specificEpithet, scientificName, sex
+          </small>
+        </div>
+
+        <div class="filter-group">
+          <label for="familyFilter">Family</label>
+          <input
+            type="text"
+            id="familyFilter"
+            placeholder="Search family"
+          />
+          <small>Searches: family</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="genusFilter">Genus</label>
+          <input
+            type="text"
+            id="genusFilter"
+            placeholder="Search genus"
+          />
+          <small>Searches: genus</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="subgenusFilter">Subgenus</label>
+          <input
+            type="text"
+            id="subgenusFilter"
+            placeholder="Search subgenus"
+          />
+          <small>Searches: subgenus</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="specificEpithetFilter">Scientific epithet</label>
+          <input
+            type="text"
+            id="specificEpithetFilter"
+            placeholder="Search specific epithet"
+          />
+          <small>Searches: specificEpithet</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="sexFilter">Sex</label>
+          <input
+            type="text"
+            id="sexFilter"
+            placeholder="Search sex"
+          />
+          <small>Searches: sex</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="samplingProtocolFilter">Sampling protocol</label>
+          <input
+            type="text"
+            id="samplingProtocolFilter"
+            placeholder="Search sampling protocol"
+          />
+          <small>Searches: samplingProtocol</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="hostPlantFilter">Host plants</label>
+          <input
+            type="text"
+            id="hostPlantFilter"
+            placeholder="Search host plant"
+          />
+          <small>Searches: host_plant</small>
         </div>
 
         <div class="filter-actions">
@@ -76,7 +191,11 @@
         </div>
 
         <div class="filter-note">
-          <p><strong>How it works:</strong> each box filters across the fields at the same time. Partial matches are allowed, and searching is case-insensitive.</p>
+          <p>
+            <strong>How it works:</strong> every search box works together at the same time.
+            Search is case-insensitive and supports multiple words.
+            For example, typing <em>Bombus flavescens</em> will require both words to be found.
+          </p>
         </div>
       </div>
     </aside>
@@ -103,6 +222,10 @@
         <div id="errorMessage" class="status-message error hidden"></div>
         <div id="noResultsMessage" class="status-message hidden">
           No results found. Try adjusting your filters.
+        </div>
+
+        <div class="table-scroll-top hidden" id="tableScrollTop">
+          <div class="table-scroll-top-inner" id="tableScrollTopInner"></div>
         </div>
 
         <div class="table-wrapper hidden" id="tableWrapper">
