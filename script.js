@@ -1,13 +1,16 @@
 /* =========================================================
    Bee Specimen Catalog Viewer
    Static GitHub Pages version
-   Updated advanced filtering with multi-word support
+   Corrected filter logic:
+   - grouped filters search grouped fields
+   - dedicated filters search only their exact field
+   - multi-word search in every box
 ========================================================= */
 
 const CSV_FILE_PATH = "data/specimens.csv";
 
 /* =========================================================
-   Table columns shown on the main page
+   Columns shown in the main table
 ========================================================= */
 const DISPLAY_COLUMNS = [
   "occurrenceID",
@@ -40,26 +43,12 @@ const DISPLAY_COLUMNS = [
 ];
 
 /* =========================================================
-   Grouped filters
+   Group filters
 ========================================================= */
-const FILTER_GROUPS = {
+const GROUP_FILTERS = {
   number: ["occurrenceID"],
-
-  locality: [
-    "country",
-    "stateProvince",
-    "county",
-    "municipality",
-    "locality"
-  ],
-
-  province: ["stateProvince"],
-
+  locality: ["country", "stateProvince", "county", "municipality", "locality"],
   event: ["eventDate", "day", "month", "year", "eventTime"],
-  day: ["day"],
-  month: ["month"],
-  year: ["year"],
-
   taxonomy: [
     "kingdom",
     "phylum",
@@ -71,21 +60,29 @@ const FILTER_GROUPS = {
     "genus",
     "subgenus",
     "specificEpithet",
-    "scientificName",
-    "sex"
-  ],
-  family: ["family"],
-  genus: ["genus"],
-  subgenus: ["subgenus"],
-  specificEpithet: ["specificEpithet"],
-  sex: ["sex"],
-
-  samplingProtocol: ["samplingProtocol"],
-  hostPlant: ["host_plant"]
+    "scientificName"
+  ]
 };
 
 /* =========================================================
-   Full known database fields
+   Dedicated single-field filters
+========================================================= */
+const EXACT_FIELD_FILTERS = {
+  province: "stateProvince",
+  day: "day",
+  month: "month",
+  year: "year",
+  family: "family",
+  genus: "genus",
+  subgenus: "subgenus",
+  specificEpithet: "specificEpithet",
+  sex: "sex",
+  samplingProtocol: "samplingProtocol",
+  hostPlant: "host_plant"
+};
+
+/* =========================================================
+   Full database field list
 ========================================================= */
 const ALL_DATABASE_FIELDS = [
   "occurrenceID",
@@ -147,35 +144,25 @@ const ALL_DATABASE_FIELDS = [
 
 /* =========================================================
    Quick search fields
-   = fields NOT already covered by dedicated filters
+   Excludes everything already covered by the sidebar filters
 ========================================================= */
-const DEDICATED_FILTER_FIELDS = Array.from(
+const COVERED_FIELDS = Array.from(
   new Set([
-    ...FILTER_GROUPS.number,
-    ...FILTER_GROUPS.locality,
-    ...FILTER_GROUPS.province,
-    ...FILTER_GROUPS.event,
-    ...FILTER_GROUPS.day,
-    ...FILTER_GROUPS.month,
-    ...FILTER_GROUPS.year,
-    ...FILTER_GROUPS.taxonomy,
-    ...FILTER_GROUPS.family,
-    ...FILTER_GROUPS.genus,
-    ...FILTER_GROUPS.subgenus,
-    ...FILTER_GROUPS.specificEpithet,
-    ...FILTER_GROUPS.sex,
-    ...FILTER_GROUPS.samplingProtocol,
-    ...FILTER_GROUPS.hostPlant
+    ...GROUP_FILTERS.number,
+    ...GROUP_FILTERS.locality,
+    ...GROUP_FILTERS.event,
+    ...GROUP_FILTERS.taxonomy,
+    ...Object.values(EXACT_FIELD_FILTERS)
   ])
 );
 
 const QUICK_SEARCH_FIELDS = ALL_DATABASE_FIELDS.filter(
   (field, index, arr) =>
-    !DEDICATED_FILTER_FIELDS.includes(field) && arr.indexOf(field) === index
+    !COVERED_FIELDS.includes(field) && arr.indexOf(field) === index
 );
 
 /* =========================================================
-   State variables
+   State
 ========================================================= */
 let allRecords = [];
 let filteredRecords = [];
@@ -186,7 +173,7 @@ let currentSortDirection = "asc";
 let topScrollbarSynced = false;
 
 /* =========================================================
-   DOM elements
+   DOM
 ========================================================= */
 const globalSearchInput = document.getElementById("globalSearch");
 const numberFilterInput = document.getElementById("numberFilter");
@@ -215,8 +202,8 @@ const rowsPerPageSelect = document.getElementById("rowsPerPage");
 const loadingMessage = document.getElementById("loadingMessage");
 const errorMessage = document.getElementById("errorMessage");
 const noResultsMessage = document.getElementById("noResultsMessage");
-const tableWrapper = document.getElementById("tableWrapper");
 
+const tableWrapper = document.getElementById("tableWrapper");
 const tableHead = document.getElementById("tableHead");
 const tableBody = document.getElementById("tableBody");
 const recordCount = document.getElementById("recordCount");
@@ -229,7 +216,7 @@ const tableScrollTop = document.getElementById("tableScrollTop");
 const tableScrollTopInner = document.getElementById("tableScrollTopInner");
 
 /* =========================================================
-   Utility functions
+   Helpers
 ========================================================= */
 function safeValue(value) {
   return value == null ? "" : String(value);
@@ -253,14 +240,11 @@ function cleanHeaderName(header) {
 function splitQueryIntoTerms(searchText) {
   return normalizeText(searchText)
     .split(/\s+/)
-    .filter(term => term.length > 0);
+    .filter(Boolean);
 }
 
-/* ---------------------------------------------------------
-   Multi-word matching:
-   Every word must be found.
---------------------------------------------------------- */
-function matchesField(record, searchText, fieldName) {
+/* Every word must be found in a single field */
+function matchesSingleField(record, searchText, fieldName) {
   const terms = splitQueryIntoTerms(searchText);
   if (terms.length === 0) return true;
 
@@ -268,27 +252,25 @@ function matchesField(record, searchText, fieldName) {
   return terms.every(term => fieldText.includes(term));
 }
 
-/* ---------------------------------------------------------
-   Grouped multi-word matching:
-   Terms can be distributed across the combined group fields.
---------------------------------------------------------- */
-function matchesGroup(record, searchText, columns) {
+/* Every word must be found in the combined grouped fields */
+function matchesFieldGroup(record, searchText, fields) {
   const terms = splitQueryIntoTerms(searchText);
   if (terms.length === 0) return true;
 
-  const combinedText = columns
-    .map(column => normalizeText(record[column]))
+  const combinedText = fields
+    .map(field => normalizeText(record[field]))
     .join(" ");
 
   return terms.every(term => combinedText.includes(term));
 }
 
+/* Quick search across remaining fields */
 function matchesQuickSearch(record, searchText) {
   const terms = splitQueryIntoTerms(searchText);
   if (terms.length === 0) return true;
 
   const combinedText = QUICK_SEARCH_FIELDS
-    .map(column => normalizeText(record[column]))
+    .map(field => normalizeText(record[field]))
     .join(" ");
 
   return terms.every(term => combinedText.includes(term));
@@ -342,7 +324,7 @@ function parseCSV(text) {
 
   if (rows.length === 0) return [];
 
-  const headers = rows[0].map(header => cleanHeaderName(header));
+  const headers = rows[0].map(cleanHeaderName);
 
   return rows.slice(1).map(values => {
     const record = {};
@@ -354,7 +336,7 @@ function parseCSV(text) {
 }
 
 /* =========================================================
-   Data loading
+   Load data
 ========================================================= */
 async function loadCSVData() {
   try {
@@ -368,7 +350,6 @@ async function loadCSVData() {
     }
 
     const response = await fetch(CSV_FILE_PATH);
-
     if (!response.ok) {
       throw new Error(`Could not load CSV file. HTTP status: ${response.status}`);
     }
@@ -404,10 +385,7 @@ async function loadCSVData() {
     }
 
     console.log("CSV loaded successfully.");
-    console.log("Number of records:", allRecords.length);
-    console.log("Sample record:", allRecords[0]);
     console.log("Quick search fields:", QUICK_SEARCH_FIELDS);
-
   } catch (error) {
     console.error(error);
     loadingMessage.classList.add("hidden");
@@ -425,11 +403,7 @@ function buildTableHeader() {
   DISPLAY_COLUMNS.forEach(column => {
     const th = document.createElement("th");
     th.textContent = column;
-
-    th.addEventListener("click", () => {
-      handleSort(column);
-    });
-
+    th.addEventListener("click", () => handleSort(column));
     headerRow.appendChild(th);
   });
 
@@ -460,7 +434,7 @@ function sortRecords(records) {
 
     const numA = Number(valueA);
     const numB = Number(valueB);
-    const bothNumeric = !isNaN(numA) && !isNaN(numB) && valueA !== "" && valueB !== "";
+    const bothNumeric = !Number.isNaN(numA) && !Number.isNaN(numB) && valueA !== "" && valueB !== "";
 
     let comparison = 0;
 
@@ -475,31 +449,32 @@ function sortRecords(records) {
 }
 
 /* =========================================================
-   Filtering logic
+   Filtering
 ========================================================= */
 function applyFilters() {
   filteredRecords = allRecords.filter(record => {
     return (
       matchesQuickSearch(record, globalSearchInput.value) &&
-      matchesGroup(record, numberFilterInput.value, FILTER_GROUPS.number) &&
 
-      matchesGroup(record, localityFilterInput.value, FILTER_GROUPS.locality) &&
-      matchesField(record, provinceFilterInput.value, "stateProvince") &&
+      matchesFieldGroup(record, numberFilterInput.value, GROUP_FILTERS.number) &&
 
-      matchesGroup(record, eventFilterInput.value, FILTER_GROUPS.event) &&
-      matchesField(record, dayFilterInput.value, "day") &&
-      matchesField(record, monthFilterInput.value, "month") &&
-      matchesField(record, yearFilterInput.value, "year") &&
+      matchesFieldGroup(record, localityFilterInput.value, GROUP_FILTERS.locality) &&
+      matchesSingleField(record, provinceFilterInput.value, EXACT_FIELD_FILTERS.province) &&
 
-      matchesGroup(record, taxonomyFilterInput.value, FILTER_GROUPS.taxonomy) &&
-      matchesField(record, familyFilterInput.value, "family") &&
-      matchesField(record, genusFilterInput.value, "genus") &&
-      matchesField(record, subgenusFilterInput.value, "subgenus") &&
-      matchesField(record, specificEpithetFilterInput.value, "specificEpithet") &&
-      matchesField(record, sexFilterInput.value, "sex") &&
+      matchesFieldGroup(record, eventFilterInput.value, GROUP_FILTERS.event) &&
+      matchesSingleField(record, dayFilterInput.value, EXACT_FIELD_FILTERS.day) &&
+      matchesSingleField(record, monthFilterInput.value, EXACT_FIELD_FILTERS.month) &&
+      matchesSingleField(record, yearFilterInput.value, EXACT_FIELD_FILTERS.year) &&
 
-      matchesField(record, samplingProtocolFilterInput.value, "samplingProtocol") &&
-      matchesField(record, hostPlantFilterInput.value, "host_plant")
+      matchesFieldGroup(record, taxonomyFilterInput.value, GROUP_FILTERS.taxonomy) &&
+      matchesSingleField(record, familyFilterInput.value, EXACT_FIELD_FILTERS.family) &&
+      matchesSingleField(record, genusFilterInput.value, EXACT_FIELD_FILTERS.genus) &&
+      matchesSingleField(record, subgenusFilterInput.value, EXACT_FIELD_FILTERS.subgenus) &&
+      matchesSingleField(record, specificEpithetFilterInput.value, EXACT_FIELD_FILTERS.specificEpithet) &&
+      matchesSingleField(record, sexFilterInput.value, EXACT_FIELD_FILTERS.sex) &&
+
+      matchesSingleField(record, samplingProtocolFilterInput.value, EXACT_FIELD_FILTERS.samplingProtocol) &&
+      matchesSingleField(record, hostPlantFilterInput.value, EXACT_FIELD_FILTERS.hostPlant)
     );
   });
 
@@ -507,7 +482,7 @@ function applyFilters() {
 }
 
 /* =========================================================
-   Rendering
+   Render
 ========================================================= */
 function renderTable() {
   tableBody.innerHTML = "";
@@ -582,7 +557,6 @@ function updatePaginationControls() {
   }
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / rowsPerPage));
-
   prevPageBtn.disabled = currentPage <= 1;
   nextPageBtn.disabled = currentPage >= totalPages;
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
@@ -623,7 +597,7 @@ function syncHorizontalScrollbars() {
 }
 
 /* =========================================================
-   Combined update
+   Apply and render
 ========================================================= */
 function applyFiltersAndRender() {
   applyFilters();
@@ -641,7 +615,7 @@ function applyFiltersAndRender() {
 }
 
 /* =========================================================
-   Reset filters
+   Reset
 ========================================================= */
 function resetFilters() {
   globalSearchInput.value = "";
@@ -673,27 +647,23 @@ function resetFilters() {
 }
 
 /* =========================================================
-   Event listeners
+   Events
 ========================================================= */
 [
   globalSearchInput,
   numberFilterInput,
-
   localityFilterInput,
   provinceFilterInput,
-
   eventFilterInput,
   dayFilterInput,
   monthFilterInput,
   yearFilterInput,
-
   taxonomyFilterInput,
   familyFilterInput,
   genusFilterInput,
   subgenusFilterInput,
   specificEpithetFilterInput,
   sexFilterInput,
-
   samplingProtocolFilterInput,
   hostPlantFilterInput
 ].forEach(input => {
@@ -732,6 +702,6 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* =========================================================
-   Initialize
+   Start
 ========================================================= */
 loadCSVData();
