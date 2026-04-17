@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bee Specimen Catalog</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-text">
+      <h1>Bee Specimen Catalog</h1>
+      <p>Historical museum specimen records browser</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <h2>Search & Filter</h2>
+
+        <div class="filter-group">
+          <label for="globalSearch">Quick search</label>
+          <input
+            type="text"
+            id="globalSearch"
+            placeholder="Search across all displayed fields..."
+          />
+        </div>
+
+        <div class="filter-group">
+          <label for="numberFilter">Number</label>
+          <input
+            type="text"
+            id="numberFilter"
+            placeholder="Search occurrenceID"
+          />
+          <small>Searches: occurrenceID</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="localityFilter">Locality</label>
+          <input
+            type="text"
+            id="localityFilter"
+            placeholder="Country, province, locality..."
+          />
+          <small>Searches: country, stateProvince, county, municipality, locality</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="eventFilter">Event</label>
+          <input
+            type="text"
+            id="eventFilter"
+            placeholder="Date, year, month, day, time..."
+          />
+          <small>Searches: eventDate, day, month, year, eventTime</small>
+        </div>
+
+        <div class="filter-group">
+          <label for="taxonomyFilter">Taxonomy</label>
+          <input
+            type="text"
+            id="taxonomyFilter"
+            placeholder="Family, genus, species..."
+          />
+          <small>Searches: kingdom, phylum, order, family, subfamily, tribe, genus, subgenus, scientificEpithet, scientificName</small>
+        </div>
+
+        <div class="filter-actions">
+          <button id="resetFiltersBtn" class="reset-btn">Reset filters</button>
+        </div>
+
+        <div class="filter-note">
+          <p><strong>How it works:</strong> each box filters the CSV at the same time. Partial matches are allowed, and searching is case-insensitive.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <section class="top-controls">
+        <div class="results-summary">
+          <span id="recordCount">Loading records...</span>
+        </div>
+
+        <div class="table-controls">
+          <label for="rowsPerPage">Rows to show:</label>
+          <select id="rowsPerPage">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="table-section">
+        <div id="loadingMessage" class="status-message">Loading CSV data...</div>
+        <div id="errorMessage" class="status-message error hidden"></div>
+        <div id="noResultsMessage" class="status-message hidden">
+          No results found. Try adjusting your filters.
+        </div>
+
+        <div class="table-wrapper hidden" id="tableWrapper">
+          <table id="specimenTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="pagination-section">
+        <div class="pagination-controls">
+          <button id="prevPageBtn">Previous</button>
+          <span id="pageInfo">Page 1</span>
+          <button id="nextPageBtn">Next</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
