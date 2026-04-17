@@ -46,10 +46,10 @@ body {
 }
 
 .site-logo {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   padding: 0.2rem;
   border-radius: 8px;
   flex-shrink: 0;
@@ -213,6 +213,21 @@ body {
   overflow: hidden;
 }
 
+/* top mirrored scrollbar area */
+.table-scroll-top {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 18px;
+  border-bottom: 1px solid #ece6db;
+  background: #f8f6f1;
+  scrollbar-gutter: stable;
+}
+
+.table-scroll-top-inner {
+  height: 1px;
+}
+
+/* main table scroll area */
 .table-wrapper {
   width: 100%;
   max-width: 100%;
@@ -222,21 +237,25 @@ body {
 }
 
 /* visible scrollbar for Chromium/Edge */
+.table-scroll-top::-webkit-scrollbar,
 .table-wrapper::-webkit-scrollbar {
   height: 12px;
   width: 12px;
 }
 
+.table-scroll-top::-webkit-scrollbar-track,
 .table-wrapper::-webkit-scrollbar-track {
   background: #eee8dc;
   border-radius: 999px;
 }
 
+.table-scroll-top::-webkit-scrollbar-thumb,
 .table-wrapper::-webkit-scrollbar-thumb {
   background: #b8af9f;
   border-radius: 999px;
 }
 
+.table-scroll-top::-webkit-scrollbar-thumb:hover,
 .table-wrapper::-webkit-scrollbar-thumb:hover {
   background: #9f9585;
 }
@@ -270,6 +289,7 @@ th {
   cursor: pointer;
   user-select: none;
   border-bottom: 2px solid #cfc6b5;
+  z-index: 1;
 }
 
 th:hover {
