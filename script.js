@@ -34,7 +34,7 @@ const DISPLAY_COLUMNS = [
   "tribe",
   "genus",
   "subgenus",
-  "scientificEpithet",
+  "specificEpithet",
   "scientificName"
 ];
 
@@ -52,7 +52,7 @@ const FILTER_GROUPS = {
     "tribe",
     "genus",
     "subgenus",
-    "scientificEpithet",
+    "specificEpithet",
     "scientificName"
   ]
 };
