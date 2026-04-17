@@ -15,15 +15,16 @@ const CSV_FILE_PATH = "data/specimens.csv";
 const DISPLAY_COLUMNS = [
   "occurrenceID",
   "recordedBy",
+  "scientificName",
+  "sex",
   "identifiedBy",
   "samplingProtocol",
-  "host_plant",
+  "eventDate",
   "country",
   "stateProvince",
   "county",
   "municipality",
   "locality",
-  "eventDate",
   "day",
   "month",
   "year",
@@ -38,8 +39,7 @@ const DISPLAY_COLUMNS = [
   "genus",
   "subgenus",
   "specificEpithet",
-  "sex",
-  "scientificName"
+  "host_plant"
 ];
 
 /* =========================================================
