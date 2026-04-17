@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,165 +25,97 @@
 
         <div class="filter-group">
           <label for="globalSearch">Quick search (other fields)</label>
-          <input
-            type="text"
-            id="globalSearch"
-            placeholder="Search across other fields..."
-          />
-          <small>
-            Searches fields not already covered by Number, Locality, Event, Taxonomy, and Others.
-          </small>
+          <input type="text" id="globalSearch" placeholder="Search other fields..." />
+          <small>Searches fields not already covered below.</small>
         </div>
 
         <div class="filter-group">
           <label for="numberFilter">Number</label>
-          <input
-            type="text"
-            id="numberFilter"
-            placeholder="Search occurrenceID"
-          />
+          <input type="text" id="numberFilter" placeholder="Search occurrenceID" />
           <small>Searches: occurrenceID</small>
         </div>
 
         <div class="filter-group">
           <label for="localityFilter">Locality</label>
-          <input
-            type="text"
-            id="localityFilter"
-            placeholder="Country, province, county, locality..."
-          />
+          <input type="text" id="localityFilter" placeholder="Search locality group..." />
           <small>Searches: country, stateProvince, county, municipality, locality</small>
         </div>
 
         <div class="filter-group">
           <label for="provinceFilter">Province</label>
-          <input
-            type="text"
-            id="provinceFilter"
-            placeholder="Search province only"
-          />
+          <input type="text" id="provinceFilter" placeholder="Search stateProvince only" />
           <small>Searches: stateProvince</small>
         </div>
 
         <div class="filter-group">
           <label for="eventFilter">Event</label>
-          <input
-            type="text"
-            id="eventFilter"
-            placeholder="Search all event fields..."
-          />
+          <input type="text" id="eventFilter" placeholder="Search event group..." />
           <small>Searches: eventDate, day, month, year, eventTime</small>
         </div>
 
         <div class="filter-group">
           <label for="dayFilter">Day</label>
-          <input
-            type="text"
-            id="dayFilter"
-            placeholder="Search day"
-          />
+          <input type="text" id="dayFilter" placeholder="Search day only" />
           <small>Searches: day</small>
         </div>
 
         <div class="filter-group">
           <label for="monthFilter">Month</label>
-          <input
-            type="text"
-            id="monthFilter"
-            placeholder="Search month"
-          />
+          <input type="text" id="monthFilter" placeholder="Search month only" />
           <small>Searches: month</small>
         </div>
 
         <div class="filter-group">
           <label for="yearFilter">Year</label>
-          <input
-            type="text"
-            id="yearFilter"
-            placeholder="Search year"
-          />
+          <input type="text" id="yearFilter" placeholder="Search year only" />
           <small>Searches: year</small>
         </div>
 
         <div class="filter-group">
           <label for="taxonomyFilter">Taxonomy</label>
-          <input
-            type="text"
-            id="taxonomyFilter"
-            placeholder="Search all taxonomy fields..."
-          />
-          <small>
-            Searches: kingdom, phylum, class, order, family, subfamily, tribe, genus, subgenus, specificEpithet, scientificName, sex
-          </small>
+          <input type="text" id="taxonomyFilter" placeholder="Search taxonomy group..." />
+          <small>Searches: kingdom, phylum, class, order, family, subfamily, tribe, genus, subgenus, specificEpithet, scientificName</small>
         </div>
 
         <div class="filter-group">
           <label for="familyFilter">Family</label>
-          <input
-            type="text"
-            id="familyFilter"
-            placeholder="Search family"
-          />
+          <input type="text" id="familyFilter" placeholder="Search family only" />
           <small>Searches: family</small>
         </div>
 
         <div class="filter-group">
           <label for="genusFilter">Genus</label>
-          <input
-            type="text"
-            id="genusFilter"
-            placeholder="Search genus"
-          />
+          <input type="text" id="genusFilter" placeholder="Search genus only" />
           <small>Searches: genus</small>
         </div>
 
         <div class="filter-group">
           <label for="subgenusFilter">Subgenus</label>
-          <input
-            type="text"
-            id="subgenusFilter"
-            placeholder="Search subgenus"
-          />
+          <input type="text" id="subgenusFilter" placeholder="Search subgenus only" />
           <small>Searches: subgenus</small>
         </div>
 
         <div class="filter-group">
           <label for="specificEpithetFilter">Scientific epithet</label>
-          <input
-            type="text"
-            id="specificEpithetFilter"
-            placeholder="Search specific epithet"
-          />
+          <input type="text" id="specificEpithetFilter" placeholder="Search specific epithet only" />
           <small>Searches: specificEpithet</small>
         </div>
 
         <div class="filter-group">
           <label for="sexFilter">Sex</label>
-          <input
-            type="text"
-            id="sexFilter"
-            placeholder="Search sex"
-          />
+          <input type="text" id="sexFilter" placeholder="Search sex only" />
           <small>Searches: sex</small>
         </div>
 
         <div class="filter-group">
           <label for="samplingProtocolFilter">Sampling protocol</label>
-          <input
-            type="text"
-            id="samplingProtocolFilter"
-            placeholder="Search sampling protocol"
-          />
+          <input type="text" id="samplingProtocolFilter" placeholder="Search samplingProtocol only" />
           <small>Searches: samplingProtocol</small>
         </div>
 
         <div class="filter-group">
           <label for="hostPlantFilter">Host plants</label>
-          <input
-            type="text"
-            id="hostPlantFilter"
-            placeholder="Search host plant"
-          />
+          <input type="text" id="hostPlantFilter" placeholder="Search host_plant only" />
           <small>Searches: host_plant</small>
         </div>
 
@@ -191,11 +124,7 @@
         </div>
 
         <div class="filter-note">
-          <p>
-            <strong>How it works:</strong> every search box works together at the same time.
-            Search is case-insensitive and supports multiple words.
-            For example, typing <em>Bombus flavescens</em> will require both words to be found.
-          </p>
+          <p><strong>How it works:</strong> all filters work together. Search is case-insensitive and supports multiple words. Example: <em>Bombus flavescens</em> requires both words to be present.</p>
         </div>
       </div>
     </aside>
