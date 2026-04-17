@@ -1,20 +1,20 @@
 /* =========================================================
    Bee Specimen Catalog Viewer
    Static GitHub Pages version
-   Updated for expanded specimen database fields
+   Updated advanced filtering with multi-word support
 ========================================================= */
 
 const CSV_FILE_PATH = "data/specimens.csv";
 
 /* =========================================================
    Table columns shown on the main page
-   Added: recordedBy, identifiedBy, samplingProtocol
 ========================================================= */
 const DISPLAY_COLUMNS = [
   "occurrenceID",
   "recordedBy",
   "identifiedBy",
   "samplingProtocol",
+  "host_plant",
   "country",
   "stateProvince",
   "county",
@@ -35,16 +35,31 @@ const DISPLAY_COLUMNS = [
   "genus",
   "subgenus",
   "specificEpithet",
+  "sex",
   "scientificName"
 ];
 
 /* =========================================================
-   Major grouped filters exactly as requested
+   Grouped filters
 ========================================================= */
 const FILTER_GROUPS = {
   number: ["occurrenceID"],
-  locality: ["country", "stateProvince", "county", "municipality", "locality"],
+
+  locality: [
+    "country",
+    "stateProvince",
+    "county",
+    "municipality",
+    "locality"
+  ],
+
+  province: ["stateProvince"],
+
   event: ["eventDate", "day", "month", "year", "eventTime"],
+  day: ["day"],
+  month: ["month"],
+  year: ["year"],
+
   taxonomy: [
     "kingdom",
     "phylum",
@@ -56,13 +71,21 @@ const FILTER_GROUPS = {
     "genus",
     "subgenus",
     "specificEpithet",
-    "scientificName"
-  ]
+    "scientificName",
+    "sex"
+  ],
+  family: ["family"],
+  genus: ["genus"],
+  subgenus: ["subgenus"],
+  specificEpithet: ["specificEpithet"],
+  sex: ["sex"],
+
+  samplingProtocol: ["samplingProtocol"],
+  hostPlant: ["host_plant"]
 };
 
 /* =========================================================
-   Full database field list from your CSV
-   Quick search will use fields NOT already in the major groups
+   Full known database fields
 ========================================================= */
 const ALL_DATABASE_FIELDS = [
   "occurrenceID",
@@ -124,18 +147,31 @@ const ALL_DATABASE_FIELDS = [
 
 /* =========================================================
    Quick search fields
-   = all fields NOT already covered by the 4 major search topics
+   = fields NOT already covered by dedicated filters
 ========================================================= */
-const MAJOR_FILTER_FIELDS = [
-  ...FILTER_GROUPS.number,
-  ...FILTER_GROUPS.locality,
-  ...FILTER_GROUPS.event,
-  ...FILTER_GROUPS.taxonomy
-];
+const DEDICATED_FILTER_FIELDS = Array.from(
+  new Set([
+    ...FILTER_GROUPS.number,
+    ...FILTER_GROUPS.locality,
+    ...FILTER_GROUPS.province,
+    ...FILTER_GROUPS.event,
+    ...FILTER_GROUPS.day,
+    ...FILTER_GROUPS.month,
+    ...FILTER_GROUPS.year,
+    ...FILTER_GROUPS.taxonomy,
+    ...FILTER_GROUPS.family,
+    ...FILTER_GROUPS.genus,
+    ...FILTER_GROUPS.subgenus,
+    ...FILTER_GROUPS.specificEpithet,
+    ...FILTER_GROUPS.sex,
+    ...FILTER_GROUPS.samplingProtocol,
+    ...FILTER_GROUPS.hostPlant
+  ])
+);
 
 const QUICK_SEARCH_FIELDS = ALL_DATABASE_FIELDS.filter(
   (field, index, arr) =>
-    !MAJOR_FILTER_FIELDS.includes(field) && arr.indexOf(field) === index
+    !DEDICATED_FILTER_FIELDS.includes(field) && arr.indexOf(field) === index
 );
 
 /* =========================================================
@@ -147,15 +183,32 @@ let currentPage = 1;
 let rowsPerPage = 50;
 let currentSortColumn = null;
 let currentSortDirection = "asc";
+let topScrollbarSynced = false;
 
 /* =========================================================
    DOM elements
 ========================================================= */
 const globalSearchInput = document.getElementById("globalSearch");
 const numberFilterInput = document.getElementById("numberFilter");
+
 const localityFilterInput = document.getElementById("localityFilter");
+const provinceFilterInput = document.getElementById("provinceFilter");
+
 const eventFilterInput = document.getElementById("eventFilter");
+const dayFilterInput = document.getElementById("dayFilter");
+const monthFilterInput = document.getElementById("monthFilter");
+const yearFilterInput = document.getElementById("yearFilter");
+
 const taxonomyFilterInput = document.getElementById("taxonomyFilter");
+const familyFilterInput = document.getElementById("familyFilter");
+const genusFilterInput = document.getElementById("genusFilter");
+const subgenusFilterInput = document.getElementById("subgenusFilter");
+const specificEpithetFilterInput = document.getElementById("specificEpithetFilter");
+const sexFilterInput = document.getElementById("sexFilter");
+
+const samplingProtocolFilterInput = document.getElementById("samplingProtocolFilter");
+const hostPlantFilterInput = document.getElementById("hostPlantFilter");
+
 const resetFiltersBtn = document.getElementById("resetFiltersBtn");
 const rowsPerPageSelect = document.getElementById("rowsPerPage");
 
@@ -172,7 +225,6 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const pageInfo = document.getElementById("pageInfo");
 
-/* Top scrollbar elements, only if present in index.html */
 const tableScrollTop = document.getElementById("tableScrollTop");
 const tableScrollTopInner = document.getElementById("tableScrollTopInner");
 
@@ -194,30 +246,52 @@ function escapeHTML(str) {
     .replace(/>/g, "&gt;");
 }
 
-/* Remove BOM if present in header names */
 function cleanHeaderName(header) {
   return safeValue(header).replace(/^\uFEFF/, "").trim();
 }
 
-function matchesGroup(record, searchText, columns) {
-  const query = normalizeText(searchText);
-  if (!query) return true;
-
-  return columns.some((column) => {
-    const value = normalizeText(record[column]);
-    return value.includes(query);
-  });
+function splitQueryIntoTerms(searchText) {
+  return normalizeText(searchText)
+    .split(/\s+/)
+    .filter(term => term.length > 0);
 }
 
-/* Quick search only across fields NOT already covered in the main filters */
-function matchesQuickSearch(record, searchText) {
-  const query = normalizeText(searchText);
-  if (!query) return true;
+/* ---------------------------------------------------------
+   Multi-word matching:
+   Every word must be found.
+--------------------------------------------------------- */
+function matchesField(record, searchText, fieldName) {
+  const terms = splitQueryIntoTerms(searchText);
+  if (terms.length === 0) return true;
 
-  return QUICK_SEARCH_FIELDS.some((column) => {
-    const value = normalizeText(record[column]);
-    return value.includes(query);
-  });
+  const fieldText = normalizeText(record[fieldName]);
+  return terms.every(term => fieldText.includes(term));
+}
+
+/* ---------------------------------------------------------
+   Grouped multi-word matching:
+   Terms can be distributed across the combined group fields.
+--------------------------------------------------------- */
+function matchesGroup(record, searchText, columns) {
+  const terms = splitQueryIntoTerms(searchText);
+  if (terms.length === 0) return true;
+
+  const combinedText = columns
+    .map(column => normalizeText(record[column]))
+    .join(" ");
+
+  return terms.every(term => combinedText.includes(term));
+}
+
+function matchesQuickSearch(record, searchText) {
+  const terms = splitQueryIntoTerms(searchText);
+  if (terms.length === 0) return true;
+
+  const combinedText = QUICK_SEARCH_FIELDS
+    .map(column => normalizeText(record[column]))
+    .join(" ");
+
+  return terms.every(term => combinedText.includes(term));
 }
 
 /* =========================================================
@@ -326,6 +400,7 @@ async function loadCSVData() {
     if (tableScrollTop) {
       tableScrollTop.classList.remove("hidden");
       syncHorizontalScrollbars();
+      updateTopScrollbarWidth();
     }
 
     console.log("CSV loaded successfully.");
@@ -403,19 +478,28 @@ function sortRecords(records) {
    Filtering logic
 ========================================================= */
 function applyFilters() {
-  const globalSearch = globalSearchInput.value;
-  const numberFilter = numberFilterInput.value;
-  const localityFilter = localityFilterInput.value;
-  const eventFilter = eventFilterInput.value;
-  const taxonomyFilter = taxonomyFilterInput.value;
-
   filteredRecords = allRecords.filter(record => {
     return (
-      matchesQuickSearch(record, globalSearch) &&
-      matchesGroup(record, numberFilter, FILTER_GROUPS.number) &&
-      matchesGroup(record, localityFilter, FILTER_GROUPS.locality) &&
-      matchesGroup(record, eventFilter, FILTER_GROUPS.event) &&
-      matchesGroup(record, taxonomyFilter, FILTER_GROUPS.taxonomy)
+      matchesQuickSearch(record, globalSearchInput.value) &&
+      matchesGroup(record, numberFilterInput.value, FILTER_GROUPS.number) &&
+
+      matchesGroup(record, localityFilterInput.value, FILTER_GROUPS.locality) &&
+      matchesField(record, provinceFilterInput.value, "stateProvince") &&
+
+      matchesGroup(record, eventFilterInput.value, FILTER_GROUPS.event) &&
+      matchesField(record, dayFilterInput.value, "day") &&
+      matchesField(record, monthFilterInput.value, "month") &&
+      matchesField(record, yearFilterInput.value, "year") &&
+
+      matchesGroup(record, taxonomyFilterInput.value, FILTER_GROUPS.taxonomy) &&
+      matchesField(record, familyFilterInput.value, "family") &&
+      matchesField(record, genusFilterInput.value, "genus") &&
+      matchesField(record, subgenusFilterInput.value, "subgenus") &&
+      matchesField(record, specificEpithetFilterInput.value, "specificEpithet") &&
+      matchesField(record, sexFilterInput.value, "sex") &&
+
+      matchesField(record, samplingProtocolFilterInput.value, "samplingProtocol") &&
+      matchesField(record, hostPlantFilterInput.value, "host_plant")
     );
   });
 
@@ -513,9 +597,9 @@ function updateTopScrollbarWidth() {
 }
 
 function syncHorizontalScrollbars() {
-  if (!tableWrapper || !tableScrollTop || !tableScrollTopInner) return;
-
-  updateTopScrollbarWidth();
+  if (!tableWrapper || !tableScrollTop || !tableScrollTopInner || topScrollbarSynced) {
+    return;
+  }
 
   let syncingFromTop = false;
   let syncingFromBottom = false;
@@ -535,6 +619,7 @@ function syncHorizontalScrollbars() {
   });
 
   window.addEventListener("resize", updateTopScrollbarWidth);
+  topScrollbarSynced = true;
 }
 
 /* =========================================================
@@ -561,9 +646,24 @@ function applyFiltersAndRender() {
 function resetFilters() {
   globalSearchInput.value = "";
   numberFilterInput.value = "";
+
   localityFilterInput.value = "";
+  provinceFilterInput.value = "";
+
   eventFilterInput.value = "";
+  dayFilterInput.value = "";
+  monthFilterInput.value = "";
+  yearFilterInput.value = "";
+
   taxonomyFilterInput.value = "";
+  familyFilterInput.value = "";
+  genusFilterInput.value = "";
+  subgenusFilterInput.value = "";
+  specificEpithetFilterInput.value = "";
+  sexFilterInput.value = "";
+
+  samplingProtocolFilterInput.value = "";
+  hostPlantFilterInput.value = "";
 
   currentPage = 1;
   currentSortColumn = null;
@@ -578,9 +678,24 @@ function resetFilters() {
 [
   globalSearchInput,
   numberFilterInput,
+
   localityFilterInput,
+  provinceFilterInput,
+
   eventFilterInput,
-  taxonomyFilterInput
+  dayFilterInput,
+  monthFilterInput,
+  yearFilterInput,
+
+  taxonomyFilterInput,
+  familyFilterInput,
+  genusFilterInput,
+  subgenusFilterInput,
+  specificEpithetFilterInput,
+  sexFilterInput,
+
+  samplingProtocolFilterInput,
+  hostPlantFilterInput
 ].forEach(input => {
   input.addEventListener("input", () => {
     currentPage = 1;
