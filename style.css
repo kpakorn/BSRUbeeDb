@@ -40,12 +40,13 @@ body {
 }
 
 .site-logo {
-  width: 64px;
-  height: 64px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
   background: rgba(255, 255, 255, 0.12);
-  padding: 0.35rem;
-  border-radius: 12px;
+  padding: 0.2rem;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .header-text h1 {
@@ -336,8 +337,8 @@ td {
   }
 
   .site-logo {
-    width: 52px;
-    height: 52px;
+    width: 36px;
+    height: 36px;
   }
 
   .layout {
