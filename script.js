@@ -1,7 +1,20 @@
+/* =========================================================
+   Bee Specimen Catalog Viewer
+   Static GitHub Pages version
+   Updated for expanded specimen database fields
+========================================================= */
+
 const CSV_FILE_PATH = "data/specimens.csv";
 
+/* =========================================================
+   Table columns shown on the main page
+   Added: recordedBy, identifiedBy, samplingProtocol
+========================================================= */
 const DISPLAY_COLUMNS = [
   "occurrenceID",
+  "recordedBy",
+  "identifiedBy",
+  "samplingProtocol",
   "country",
   "stateProvince",
   "county",
@@ -14,6 +27,7 @@ const DISPLAY_COLUMNS = [
   "eventTime",
   "kingdom",
   "phylum",
+  "class",
   "order",
   "family",
   "subfamily",
@@ -24,6 +38,9 @@ const DISPLAY_COLUMNS = [
   "scientificName"
 ];
 
+/* =========================================================
+   Major grouped filters exactly as requested
+========================================================= */
 const FILTER_GROUPS = {
   number: ["occurrenceID"],
   locality: ["country", "stateProvince", "county", "municipality", "locality"],
@@ -31,6 +48,7 @@ const FILTER_GROUPS = {
   taxonomy: [
     "kingdom",
     "phylum",
+    "class",
     "order",
     "family",
     "subfamily",
@@ -42,6 +60,87 @@ const FILTER_GROUPS = {
   ]
 };
 
+/* =========================================================
+   Full database field list from your CSV
+   Quick search will use fields NOT already in the major groups
+========================================================= */
+const ALL_DATABASE_FIELDS = [
+  "occurrenceID",
+  "dataset",
+  "AnthophilaTag",
+  "complete_digitizeTag",
+  "complete_dataTag",
+  "recordedBy",
+  "Status",
+  "individualCount",
+  "scientificName",
+  "kingdom",
+  "phylum",
+  "class",
+  "order",
+  "family",
+  "subfamily",
+  "tribe",
+  "genus",
+  "subgenus",
+  "specificEpithet",
+  "scientificnameAuthorship",
+  "taxonrank",
+  "identificationQualifier",
+  "typeStatus",
+  "identifiedBy",
+  "dateIdentified",
+  "lifestage",
+  "sex",
+  "country",
+  "countryCode",
+  "stateProvince",
+  "county",
+  "municipality",
+  "locality",
+  "verbatimLatitude",
+  "decimalLatitude",
+  "verbatimLongitude",
+  "decimalLongitude",
+  "geodeticDatum",
+  "georeferenceVerificationStatus",
+  "minimumElevationInMeters",
+  "verbatimEventDate",
+  "eventDate",
+  "eventTime",
+  "day",
+  "month",
+  "year",
+  "eventRemarks",
+  "occurenceRemarks",
+  "organismRemarks",
+  "host_plant",
+  "samplingProtocol",
+  "disposition",
+  "verbatimLocality",
+  "verbatimGeoreference",
+  "GBIFTIGER-ID"
+];
+
+/* =========================================================
+   Quick search fields
+   = all fields NOT already covered by the 4 major search topics
+========================================================= */
+const MAJOR_FILTER_FIELDS = [
+  ...FILTER_GROUPS.number,
+  ...FILTER_GROUPS.locality,
+  ...FILTER_GROUPS.event,
+  ...FILTER_GROUPS.taxonomy
+];
+
+const QUICK_SEARCH_FIELDS = ALL_DATABASE_FIELDS.filter(
+  (field, index, arr) =>
+    !MAJOR_FILTER_FIELDS.includes(field) && arr.indexOf(field) === index
+);
+
+/* =========================================================
+   State variables
+========================================================= */
 let allRecords = [];
 let filteredRecords = [];
 let currentPage = 1;
@@ -49,6 +148,9 @@ let rowsPerPage = 50;
 let currentSortColumn = null;
 let currentSortDirection = "asc";
 
+/* =========================================================
+   DOM elements
+========================================================= */
 const globalSearchInput = document.getElementById("globalSearch");
 const numberFilterInput = document.getElementById("numberFilter");
 const localityFilterInput = document.getElementById("localityFilter");
@@ -70,12 +172,31 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const pageInfo = document.getElementById("pageInfo");
 
+/* Top scrollbar elements, only if present in index.html */
+const tableScrollTop = document.getElementById("tableScrollTop");
+const tableScrollTopInner = document.getElementById("tableScrollTopInner");
+
+/* =========================================================
+   Utility functions
+========================================================= */
 function safeValue(value) {
   return value == null ? "" : String(value);
 }
 
 function normalizeText(value) {
   return safeValue(value).trim().toLowerCase();
+}
+
+function escapeHTML(str) {
+  return safeValue(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/* Remove BOM if present in header names */
+function cleanHeaderName(header) {
+  return safeValue(header).replace(/^\uFEFF/, "").trim();
 }
 
 function matchesGroup(record, searchText, columns) {
@@ -88,23 +209,20 @@ function matchesGroup(record, searchText, columns) {
   });
 }
 
-function matchesGlobal(record, searchText) {
+/* Quick search only across fields NOT already covered in the main filters */
+function matchesQuickSearch(record, searchText) {
   const query = normalizeText(searchText);
   if (!query) return true;
 
-  return DISPLAY_COLUMNS.some((column) => {
+  return QUICK_SEARCH_FIELDS.some((column) => {
     const value = normalizeText(record[column]);
     return value.includes(query);
   });
 }
 
-function escapeHTML(str) {
-  return safeValue(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
+/* =========================================================
+   CSV parser
+========================================================= */
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -150,7 +268,7 @@ function parseCSV(text) {
 
   if (rows.length === 0) return [];
 
-  const headers = rows[0].map(header => header.trim());
+  const headers = rows[0].map(header => cleanHeaderName(header));
 
   return rows.slice(1).map(values => {
     const record = {};
@@ -161,12 +279,19 @@ function parseCSV(text) {
   });
 }
 
+/* =========================================================
+   Data loading
+========================================================= */
 async function loadCSVData() {
   try {
     loadingMessage.classList.remove("hidden");
     errorMessage.classList.add("hidden");
     noResultsMessage.classList.add("hidden");
     tableWrapper.classList.add("hidden");
+
+    if (tableScrollTop) {
+      tableScrollTop.classList.add("hidden");
+    }
 
     const response = await fetch(CSV_FILE_PATH);
 
@@ -198,9 +323,15 @@ async function loadCSVData() {
     loadingMessage.classList.add("hidden");
     tableWrapper.classList.remove("hidden");
 
+    if (tableScrollTop) {
+      tableScrollTop.classList.remove("hidden");
+      syncHorizontalScrollbars();
+    }
+
     console.log("CSV loaded successfully.");
     console.log("Number of records:", allRecords.length);
     console.log("Sample record:", allRecords[0]);
+    console.log("Quick search fields:", QUICK_SEARCH_FIELDS);
 
   } catch (error) {
     console.error(error);
@@ -210,6 +341,9 @@ async function loadCSVData() {
   }
 }
 
+/* =========================================================
+   Table header
+========================================================= */
 function buildTableHeader() {
   const headerRow = document.createElement("tr");
 
@@ -228,6 +362,9 @@ function buildTableHeader() {
   tableHead.appendChild(headerRow);
 }
 
+/* =========================================================
+   Sorting
+========================================================= */
 function handleSort(column) {
   if (currentSortColumn === column) {
     currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
@@ -262,6 +399,9 @@ function sortRecords(records) {
   });
 }
 
+/* =========================================================
+   Filtering logic
+========================================================= */
 function applyFilters() {
   const globalSearch = globalSearchInput.value;
   const numberFilter = numberFilterInput.value;
@@ -271,7 +411,7 @@ function applyFilters() {
 
   filteredRecords = allRecords.filter(record => {
     return (
-      matchesGlobal(record, globalSearch) &&
+      matchesQuickSearch(record, globalSearch) &&
       matchesGroup(record, numberFilter, FILTER_GROUPS.number) &&
       matchesGroup(record, localityFilter, FILTER_GROUPS.locality) &&
       matchesGroup(record, eventFilter, FILTER_GROUPS.event) &&
@@ -282,12 +422,20 @@ function applyFilters() {
   filteredRecords = sortRecords(filteredRecords);
 }
 
+/* =========================================================
+   Rendering
+========================================================= */
 function renderTable() {
   tableBody.innerHTML = "";
 
   if (filteredRecords.length === 0) {
     tableWrapper.classList.add("hidden");
     noResultsMessage.classList.remove("hidden");
+
+    if (tableScrollTop) {
+      tableScrollTop.classList.add("hidden");
+    }
+
     updateSummary();
     updatePaginationControls();
     return;
@@ -295,6 +443,10 @@ function renderTable() {
 
   noResultsMessage.classList.add("hidden");
   tableWrapper.classList.remove("hidden");
+
+  if (tableScrollTop) {
+    tableScrollTop.classList.remove("hidden");
+  }
 
   let visibleRecords = filteredRecords;
 
@@ -318,6 +470,10 @@ function renderTable() {
 
   updateSummary();
   updatePaginationControls();
+
+  if (tableScrollTop) {
+    updateTopScrollbarWidth();
+  }
 }
 
 function updateSummary() {
@@ -348,6 +504,42 @@ function updatePaginationControls() {
   pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
 }
 
+/* =========================================================
+   Top scrollbar sync
+========================================================= */
+function updateTopScrollbarWidth() {
+  if (!tableWrapper || !tableScrollTopInner) return;
+  tableScrollTopInner.style.width = tableWrapper.scrollWidth + "px";
+}
+
+function syncHorizontalScrollbars() {
+  if (!tableWrapper || !tableScrollTop || !tableScrollTopInner) return;
+
+  updateTopScrollbarWidth();
+
+  let syncingFromTop = false;
+  let syncingFromBottom = false;
+
+  tableScrollTop.addEventListener("scroll", () => {
+    if (syncingFromBottom) return;
+    syncingFromTop = true;
+    tableWrapper.scrollLeft = tableScrollTop.scrollLeft;
+    syncingFromTop = false;
+  });
+
+  tableWrapper.addEventListener("scroll", () => {
+    if (syncingFromTop) return;
+    syncingFromBottom = true;
+    tableScrollTop.scrollLeft = tableWrapper.scrollLeft;
+    syncingFromBottom = false;
+  });
+
+  window.addEventListener("resize", updateTopScrollbarWidth);
+}
+
+/* =========================================================
+   Combined update
+========================================================= */
 function applyFiltersAndRender() {
   applyFilters();
 
@@ -363,6 +555,9 @@ function applyFiltersAndRender() {
   renderTable();
 }
 
+/* =========================================================
+   Reset filters
+========================================================= */
 function resetFilters() {
   globalSearchInput.value = "";
   numberFilterInput.value = "";
@@ -377,6 +572,9 @@ function resetFilters() {
   applyFiltersAndRender();
 }
 
+/* =========================================================
+   Event listeners
+========================================================= */
 [
   globalSearchInput,
   numberFilterInput,
@@ -418,4 +616,7 @@ nextPageBtn.addEventListener("click", () => {
   }
 });
 
+/* =========================================================
+   Initialize
+========================================================= */
 loadCSVData();
