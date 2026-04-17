@@ -25,6 +25,7 @@ const DISPLAY_COLUMNS = [
   "month",
   "year",
   "eventTime",
+  "kingdom",
   "phylum",
   "class",
   "order",
@@ -35,7 +36,6 @@ const DISPLAY_COLUMNS = [
   "subgenus",
   "specificEpithet",
   "scientificName"
-  "scientificNameAuthorship"
 ];
 
 /* =========================================================
