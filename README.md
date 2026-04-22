@@ -18,5 +18,5 @@ The website is intended for museum, natural history, biodiversity, and collectio
 
 - <b>Pakorn Nalinrachatakan</b> [pakorn.nlr@gmail.com](pakorn.nlr@gmail.com) : Database, Code, Project lead, Data Curator, Bee research, Contact point
 - Natapot Warrit [natapot.w@chula.ac.th](natapot.w@chula.ac.th) : Project lead, Investigator, Database, Bee research 
-- Chawatat Thanoosing [t.chawatat@gmail.com](t.chawatat@gmail.com) : Database, Bee research (Bumblebees specialist)
+- Chawatat Thanoosing [chawatat.t@chula.ac.th](chawatat.t@chula.ac.th) : Database, Bee research (Bumblebees specialist)
 - Nontawat Chatthanabun [haman_bird@hotmail.com](haman_bird@hotmail.com) : Database, Bee research (Megachilidae bee specialist)
