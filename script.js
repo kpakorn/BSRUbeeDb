@@ -5,6 +5,8 @@
    - grouped filters search grouped fields
    - dedicated filters search only their exact field
    - multi-word search in every box
+   - SEX filter uses exact token matching so "male"
+     does not match "female"
 ========================================================= */
 
 const CSV_FILE_PATH = "data/specimens.csv";
@@ -243,13 +245,32 @@ function splitQueryIntoTerms(searchText) {
     .filter(Boolean);
 }
 
-/* Every word must be found in a single field */
+/* Split field text into comparable tokens.
+   This is used for exact-token matching, especially for sex. */
+function splitFieldIntoTokens(value) {
+  return normalizeText(value)
+    .split(/[\s,;|/()\-_.:]+/)
+    .map(token => token.trim())
+    .filter(Boolean);
+}
+
+/* Every word must be found in a single field by substring matching */
 function matchesSingleField(record, searchText, fieldName) {
   const terms = splitQueryIntoTerms(searchText);
   if (terms.length === 0) return true;
 
   const fieldText = normalizeText(record[fieldName]);
   return terms.every(term => fieldText.includes(term));
+}
+
+/* Exact-token matching for fields like sex
+   so "male" will not match "female" */
+function matchesSingleFieldExactToken(record, searchText, fieldName) {
+  const terms = splitQueryIntoTerms(searchText);
+  if (terms.length === 0) return true;
+
+  const tokens = splitFieldIntoTokens(record[fieldName]);
+  return terms.every(term => tokens.includes(term));
 }
 
 /* Every word must be found in the combined grouped fields */
@@ -434,7 +455,11 @@ function sortRecords(records) {
 
     const numA = Number(valueA);
     const numB = Number(valueB);
-    const bothNumeric = !Number.isNaN(numA) && !Number.isNaN(numB) && valueA !== "" && valueB !== "";
+    const bothNumeric =
+      !Number.isNaN(numA) &&
+      !Number.isNaN(numB) &&
+      valueA !== "" &&
+      valueB !== "";
 
     let comparison = 0;
 
@@ -471,7 +496,9 @@ function applyFilters() {
       matchesSingleField(record, genusFilterInput.value, EXACT_FIELD_FILTERS.genus) &&
       matchesSingleField(record, subgenusFilterInput.value, EXACT_FIELD_FILTERS.subgenus) &&
       matchesSingleField(record, specificEpithetFilterInput.value, EXACT_FIELD_FILTERS.specificEpithet) &&
-      matchesSingleField(record, sexFilterInput.value, EXACT_FIELD_FILTERS.sex) &&
+
+      /* SEX FILTER FIXED HERE */
+      matchesSingleFieldExactToken(record, sexFilterInput.value, EXACT_FIELD_FILTERS.sex) &&
 
       matchesSingleField(record, samplingProtocolFilterInput.value, EXACT_FIELD_FILTERS.samplingProtocol) &&
       matchesSingleField(record, hostPlantFilterInput.value, EXACT_FIELD_FILTERS.hostPlant)
